@@ -3,6 +3,7 @@ const https = require('https');
 const async = require('async');
 const sma = require('sma');
 const _ = require('lodash');
+const fs = require('fs');
 
 // Lodash moving avg: https://purelyfunctional.tv/article/moving-average/
 function sum(numbers) {
@@ -54,17 +55,27 @@ function makeJSONRequest(url, callback) {
         callback(`Error: ${err}`, []);
     });
 };
+// Source = https://www.reddit.com/r/ZenGMBasketballCoach/comments/35j0yy/320team_json_file_with_ncaa_schools_locations/
+// read file = https://stackoverflow.com/questions/10011011/using-node-js-how-do-i-read-a-json-file-into-server-memory
+var schools = JSON.parse(fs.readFileSync('colleges.json', 'utf8')).teams;
 
-var states = {
-    "Georgia Tech" : "GA",
-    "Alabama" : "AL"
-};
-
-var spplusRank = [
-
-];
+function findSchool(team) {
+    var results = schools.filter(function(item) {
+        return item.region == team.trim();
+    })
+    if (results.length > 0) {
+        return results[0];
+    } else {
+        return null;
+    }
+}
 
 function pullTeamData(team, year, blueChipFilter, callback) {
+    var school = findSchool(team);
+    if (school == null) {
+        console.log("No school found locally.")
+        return;
+    }
     makeJSONRequest('https://api.collegefootballdata.com/recruiting/players?year=' + encodeURIComponent(year.toString()) + '&classification=HighSchool&team=' + encodeURIComponent(team),
     function(err, data) {
         var percent = 0;
@@ -73,7 +84,7 @@ function pullTeamData(team, year, blueChipFilter, callback) {
         } else {
             if (data.length > 0) {
                 var instate = data.filter(function(item) {
-                    var check = (item.stateProvince == states[team]);
+                    var check = (item.stateProvince == school.state);
                     if (blueChipFilter == true) {
                         check = check && (item.stars >= 4);
                     }
@@ -90,16 +101,12 @@ function pullTeamData(team, year, blueChipFilter, callback) {
 }
 
 var dataset = [];
-var selectedTeam = "Alabama";
+var selectedTeam = "Georgia Tech";
 var endYear = 2020;
 var startYear = 2002;
 
 async.timesSeries((endYear - startYear), function(n, next) {
-    pullTeamData(selectedTeam, startYear + n, false, function(percent, yr) {
-        // // dataset.push({ "year": yr, "percent" : percent });
-        // if (dataset.length == (endYear-startYear)) {
-        //     presentRollingAvg(dataset, 4);
-        // }
+    pullTeamData(selectedTeam, startYear + n, true, function(percent, yr) {
         next(null, { "year": yr, "percent" : percent });
     });
 }, function(err, results) {
@@ -108,7 +115,6 @@ async.timesSeries((endYear - startYear), function(n, next) {
         block.push(item.percent);
     });
 
-    // console.log("ROLLING AVG: " + block.simpleSMA(n));
     var avgs = moving_average(2, 2, block);
     var cleanDisplay = [];
     results.forEach(function(item, i) {
