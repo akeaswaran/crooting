@@ -3,7 +3,7 @@ crooting.js
 
 Data scraping and analysis of in-state blue-chip ratio and S&P+ ranking for CFB teams.
 
-I wanted to see if the recruiting bit about "playing for your state" actually works and generates good teams. Here's the data that backed it.
+I wanted to see if the recruiting bit about "playing for your state" actually works and generates good teams. Here's the data that backed my analysis.
 
 Sources:
 
