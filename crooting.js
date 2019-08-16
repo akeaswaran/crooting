@@ -136,7 +136,7 @@ function pullTeamData(team, year, blueChipFilter, callback) {
 
 var dataset = [];
 var selectedTeam = "Georgia Tech";
-var filterForBluechips = true;
+var filterForBluechips = false;
 // S&P+ only has data between 2005 and 2018, account for that.
 var endYear = 2018;
 var startYear = 2005;
