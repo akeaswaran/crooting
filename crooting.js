@@ -70,12 +70,27 @@ function findSchool(team) {
     }
 }
 
+function generateFileName(team, bluechip) {
+    return "results/" + team.toLocaleLowerCase().replace(" ","-") + (bluechip ? "-bluechip" : "") + ".json";
+}
+
 function pullTeamData(team, year, blueChipFilter, callback) {
     var school = findSchool(team);
     if (school == null) {
         console.log("No school found locally.")
         return;
     }
+    // https://flaviocopes.com/how-to-check-if-file-exists-node/
+    try {
+      if (fs.existsSync(generateFileName(team, blueChipFilter))) {
+          console.log("Team data already calculated -- see " + generateFileName(team) + ".")
+        return;
+      }
+    } catch(err) {
+        console.error(err)
+        return;
+    }
+
     makeJSONRequest('https://api.collegefootballdata.com/recruiting/players?year=' + encodeURIComponent(year.toString()) + '&classification=HighSchool&team=' + encodeURIComponent(team),
     function(err, data) {
         var percent = 0;
@@ -101,12 +116,14 @@ function pullTeamData(team, year, blueChipFilter, callback) {
 }
 
 var dataset = [];
-var selectedTeam = "Georgia Tech";
+var selectedTeam = "Alabama";
+var filterForBluechips = true;
 var endYear = 2020;
 var startYear = 2002;
+var fileName = generateFileName(selectedTeam, filterForBluechips);
 
 async.timesSeries((endYear - startYear), function(n, next) {
-    pullTeamData(selectedTeam, startYear + n, true, function(percent, yr) {
+    pullTeamData(selectedTeam, startYear + n, filterForBluechips, function(percent, yr) {
         next(null, { "year": yr, "percent" : percent });
     });
 }, function(err, results) {
@@ -121,6 +138,21 @@ async.timesSeries((endYear - startYear), function(n, next) {
         cleanDisplay.push({ "year": item.year, "rollingAvg" : avgs[i] != null ? avgs[i] : 0 });
     });
 
-    console.log("ROLLING AVG: ");
-    console.log(cleanDisplay);
+    // console.log("ROLLING AVG: ");
+    // console.log(cleanDisplay);
+    // https://stackoverflow.com/questions/2496710/writing-files-in-node-js
+    fs.mkdir('results', { recursive : true }, function(error) {
+        if (error && !error.toString().includes('EEXIST')) {
+            console.log("Something went wrong while saving - " + error);
+        } else {
+            fs.writeFile(fileName, JSON.stringify(cleanDisplay), function(err) {
+                if(err) {
+                    return console.log(err);
+                }
+
+                console.log("Saved team data to " + fileName + ".");
+            });
+        }
+    })
+
 });
