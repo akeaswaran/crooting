@@ -1,0 +1,17 @@
+{
+  "name": "crooting",
+  "version": "1.0.0",
+  "description": "",
+  "main": "crooting.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Akshay Easwaran <akeaswaran@me.com>",
+  "license": "MIT",
+  "dependencies": {
+    "async": "^3.1.0",
+    "lodash": "^4.17.15",
+    "request": "^2.88.0",
+    "sma": "^0.1.1"
+  }
+}
