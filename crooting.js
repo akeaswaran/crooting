@@ -4,6 +4,7 @@ const async = require('async');
 const sma = require('sma');
 const _ = require('lodash');
 
+// Lodash moving avg: https://purelyfunctional.tv/article/moving-average/
 function sum(numbers) {
   return _.reduce(numbers, (a, b) => a + b, 0);
 }
