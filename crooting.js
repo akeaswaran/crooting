@@ -70,6 +70,24 @@ function findSchool(team) {
     }
 }
 
+// Data from https://www.footballoutsiders.com/stats/ncaa
+function findSPPlus(school, year) {
+  var sheet = JSON.parse(fs.readFileSync('spplus/' + encodeURIComponent(year) + '.json', 'utf8'));
+  if (sheet != null && sheet.length > 0) {
+    var results = sheet.filter(function(item) {
+        return item.team == school.trim();
+    })
+    if (results.length > 0) {
+        var teamData = results[0];
+        return teamData.overall_rating;
+    } else {
+        return null;
+    }
+  } else {
+    return null;
+  }
+}
+
 function generateFileName(team, bluechip) {
     return "results/" + team.toLocaleLowerCase().replace(" ","-") + (bluechip ? "-bluechip" : "") + ".json";
 }
@@ -81,9 +99,10 @@ function pullTeamData(team, year, blueChipFilter, callback) {
         return;
     }
     // https://flaviocopes.com/how-to-check-if-file-exists-node/
+    var fileName = generateFileName(team, blueChipFilter);
     try {
-      if (fs.existsSync(generateFileName(team, blueChipFilter))) {
-          console.log("Team data already calculated -- see " + generateFileName(team) + ".")
+      if (fs.existsSync(fileName)) {
+          console.log("Team data already calculated -- see " + fileName + ".")
         return;
       }
     } catch(err) {
@@ -116,7 +135,7 @@ function pullTeamData(team, year, blueChipFilter, callback) {
 }
 
 var dataset = [];
-var selectedTeam = "Alabama";
+var selectedTeam = "Georgia Tech";
 var filterForBluechips = true;
 var endYear = 2020;
 var startYear = 2002;
@@ -124,7 +143,7 @@ var fileName = generateFileName(selectedTeam, filterForBluechips);
 
 async.timesSeries((endYear - startYear), function(n, next) {
     pullTeamData(selectedTeam, startYear + n, filterForBluechips, function(percent, yr) {
-        next(null, { "year": yr, "percent" : percent });
+        next(null, { "year": yr, "percent" : percent, "spplus" : findSPPlus(selectedTeam, yr) });
     });
 }, function(err, results) {
     var block = [];
@@ -135,7 +154,7 @@ async.timesSeries((endYear - startYear), function(n, next) {
     var avgs = moving_average(2, 2, block);
     var cleanDisplay = [];
     results.forEach(function(item, i) {
-        cleanDisplay.push({ "year": item.year, "rollingAvg" : avgs[i] != null ? avgs[i] : 0 });
+        cleanDisplay.push({ "year": item.year, "percent" : item.percent, "spplus" : item.spplus, "rollingAvg" : avgs[i] != null ? avgs[i] : 0 });
     });
 
     // console.log("ROLLING AVG: ");
