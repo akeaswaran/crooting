@@ -135,14 +135,14 @@ function pullTeamData(team, year, blueChipFilter, callback) {
 }
 
 var dataset = [];
-var selectedTeam = "Alabama";
-var filterForBluechips = true;
+var selectedTeam = "Clemson";
+var filterForBluechips = false;
 // S&P+ only has data between 2005 and 2018, account for that.
 var endYear = 2018;
 var startYear = 2005;
 var fileName = generateFileName(selectedTeam, filterForBluechips);
 
-async.timesSeries((endYear - startYear), function(n, next) {
+async.timesSeries((endYear - startYear) + 1, function(n, next) {
     pullTeamData(selectedTeam, startYear + n, filterForBluechips, function(percent, yr) {
         next(null, { "year": yr, "percent" : percent, "spplus" : findSPPlus(selectedTeam, yr) });
     });

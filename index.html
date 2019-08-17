@@ -33,9 +33,13 @@ body {
 }
 </style>
 <body>
-<script src="https://d3js.org/d3.v3.min.js"></script>
+<script src="/js/d3.min.js"></script>
 
 <script>
+// set up analysis variables
+var selectedTeam = "Alabama";
+var bluechipFilter = true;
+var teamHexColor = "#9e1b32";
 
 function generateFileName(team, bluechip) {
     return "./results/" + team.toLocaleLowerCase().replace(" ","-") + (bluechip ? "-bluechip" : "") + ".json";
@@ -83,10 +87,6 @@ var yValue = function(d) { return d.spplus;}, // data -> value
     yMap = function(d) { return yScale(yValue(d));}, // data -> display
     yAxis = d3.svg.axis().scale(yScale).orient("left");
 
-// setup fill color
-var cValue = function(d) { return d.year;},
-    color = d3.scale.category10();
-
 // add the graph canvas to the body of the webpage
 var svg = d3.select("body").append("svg")
     .attr("width", width + margin.left + margin.right)
@@ -100,8 +100,6 @@ var tooltip = d3.select("body").append("div")
     .style("opacity", 0);
 
 // load data
-var selectedTeam = "Georgia Tech";
-var bluechipFilter = false;
 d3.json(generateFileName(selectedTeam, bluechipFilter), function(error, data) {
 
   // change string (from CSV) into number format
@@ -149,7 +147,7 @@ d3.json(generateFileName(selectedTeam, bluechipFilter), function(error, data) {
       .attr("cx", xMap)
       .attr("cy", yMap)
       .style("fill", function(d) {
-        return d3.rgb(0, 0, 0);
+        return teamHexColor;
       })
       .on("mouseover", function(d) {
           tooltip.transition()
