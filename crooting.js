@@ -70,6 +70,19 @@ function findSchool(team) {
     }
 }
 
+// data from https://github.com/RanksEngine/College-Colors/blob/master/colors.json
+var colors = JSON.parse(fs.readFileSync('colors.json', 'utf8'));
+function findHexColor(team) {
+    var results = colors.filter(function(item) {
+        return item.name == team.trim();
+    })
+    if (results.length > 0) {
+        return results[0].color1;
+    } else {
+        return '#000';
+    }
+}
+
 // Data from https://www.footballoutsiders.com/stats/ncaa
 function findSPPlus(school, year) {
   var sheet = JSON.parse(fs.readFileSync('spplus/' + encodeURIComponent(year) + '.json', 'utf8'));
@@ -165,7 +178,7 @@ async.timesSeries((endYear - startYear) + 1, function(n, next) {
         if (error && !error.toString().includes('EEXIST')) {
             console.log("Something went wrong while saving - " + error);
         } else {
-            fs.writeFile(fileName, JSON.stringify(cleanDisplay), function(err) {
+            fs.writeFile(fileName, JSON.stringify({"data" : cleanDisplay, "team" : selectedTeam.trim(), "color" : findHexColor(selectedTeam.trim())}), function(err) {
                 if(err) {
                     return console.log(err);
                 }

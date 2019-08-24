@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Crooting Data Output</title>
+    <title>Crooting Data Output</title>
 </head>
 <meta charset="utf-8">
 <!-- http://bl.ocks.org/weiglemc/6185069 -->
@@ -11,185 +11,263 @@
 
 <style>
 body {
-  font: 11px sans-serif;
+    font: 11px sans-serif;
 }
 
 .axis path,
 .axis line {
-  fill: none;
-  stroke: #000;
-  shape-rendering: crispEdges;
+    fill: none;
+    stroke: #000;
+    shape-rendering: crispEdges;
 }
 
 .dot {
-  stroke: #000;
+    stroke: #000;
 }
 
+/* .regression {
+    stroke-width: 2px;
+    stroke: steelblue;
+    stroke-dasharray: 10,5;
+} */
+
 .tooltip {
-  position: absolute;
-  width: 200px;
-  height: 28px;
-  pointer-events: none;
+    position: absolute;
+    width: 200px;
+    height: 28px;
+    pointer-events: none;
 }
 </style>
 <body>
-<script src="/js/d3.min.js"></script>
+    <script src="/js/d3.min.js"></script>
 
-<script>
-// set up analysis variables
-var selectedTeam = "Alabama";
-var bluechipFilter = true;
-var teamHexColor = "#9e1b32";
+    <script>
+    // set up analysis variables
+    var selectedTeam = "Clemson";
+    var bluechipFilter = false;
+    // var teamHexColor = "#9e1b32";
 
-function generateFileName(team, bluechip) {
-    return "./results/" + team.toLocaleLowerCase().replace(" ","-") + (bluechip ? "-bluechip" : "") + ".json";
-}
+    function generateFileName(team, bluechip) {
+        return "./results/" + team.toLocaleLowerCase().replace(" ","-") + (bluechip ? "-bluechip" : "") + ".json";
+    }
 
-var margin = {top: 20, right: 20, bottom: 30, left: 40},
+    var margin = {top: 20, right: 20, bottom: 30, left: 40},
     width = 960 - margin.left - margin.right,
     height = 500 - margin.top - margin.bottom;
 
-// https://stackoverflow.com/questions/20507536/d3-js-linear-regression
-function linearRegression(y,x){
-     var lr = {};
-     var n = y.length;
-     var sum_x = 0;
-     var sum_y = 0;
-     var sum_xy = 0;
-     var sum_xx = 0;
-     var sum_yy = 0;
+    // https://stackoverflow.com/questions/20507536/d3-js-linear-regression
+    function linearRegression(y,x){
+        var lr = {};
+        var n = y.length;
+        var sum_x = 0;
+        var sum_y = 0;
+        var sum_xy = 0;
+        var sum_xx = 0;
+        var sum_yy = 0;
 
-     for (var i = 0; i < y.length; i++) {
+        for (var i = 0; i < y.length; i++) {
 
-         sum_x += x[i];
-         sum_y += y[i];
-         sum_xy += (x[i]*y[i]);
-         sum_xx += (x[i]*x[i]);
-         sum_yy += (y[i]*y[i]);
-     }
+            sum_x += x[i];
+            sum_y += y[i];
+            sum_xy += (x[i]*y[i]);
+            sum_xx += (x[i]*x[i]);
+            sum_yy += (y[i]*y[i]);
+        }
 
-     lr['slope'] = (n * sum_xy - sum_x * sum_y) / (n*sum_xx - sum_x * sum_x);
-     lr['intercept'] = (sum_y - lr.slope * sum_x)/n;
-     lr['r2'] = Math.pow((n*sum_xy - sum_x*sum_y)/Math.sqrt((n*sum_xx-sum_x*sum_x)*(n*sum_yy-sum_y*sum_y)),2);
+        lr['slope'] = (n * sum_xy - sum_x * sum_y) / (n*sum_xx - sum_x * sum_x);
+        lr['intercept'] = (sum_y - lr.slope * sum_x)/n;
+        lr['r2'] = Math.pow((n*sum_xy - sum_x*sum_y)/Math.sqrt((n*sum_xx-sum_x*sum_x)*(n*sum_yy-sum_y*sum_y)),2);
 
-     return lr;
-};
+        return lr;
+    };
 
-// setup x
-var xValue = function(d) { return d.rollingAvg;}, // data -> value
+    // setup x
+    var xValue = function(d) { return d.rollingAvg;}, // data -> value
     xScale = d3.scale.linear().range([0, width]), // value -> display
     xMap = function(d) { return xScale(xValue(d));}, // data -> display
     xAxis = d3.svg.axis().scale(xScale).orient("bottom");
 
-// setup y
-var yValue = function(d) { return d.spplus;}, // data -> value
+    // setup y
+    var yValue = function(d) { return d.spplus;}, // data -> value
     yScale = d3.scale.linear().range([height, 0]), // value -> display
     yMap = function(d) { return yScale(yValue(d));}, // data -> display
     yAxis = d3.svg.axis().scale(yScale).orient("left");
 
-// add the graph canvas to the body of the webpage
-var svg = d3.select("body").append("svg")
+    // add the graph canvas to the body of the webpage
+    var svg = d3.select("body").append("svg")
     .attr("width", width + margin.left + margin.right)
     .attr("height", height + margin.top + margin.bottom)
-  .append("g")
+    .append("g")
     .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
-// add the tooltip area to the webpage
-var tooltip = d3.select("body").append("div")
+    // add the tooltip area to the webpage
+    var tooltip = d3.select("body").append("div")
     .attr("class", "tooltip")
     .style("opacity", 0);
 
-// load data
-d3.json(generateFileName(selectedTeam, bluechipFilter), function(error, data) {
+    // load data
+    d3.json(generateFileName(selectedTeam, bluechipFilter), function(error, dataset) {
 
-  // change string (from CSV) into number format
-  data.forEach(function(d) {
-    d.year = +d.year;
-    d.spplus = +d.spplus;
-    d.percent = +d.percent;
-    d.rollingAvg = +d.rollingAvg;
-  });
+        var data = dataset.data;
+        // change string (from CSV) into number format
+        data.forEach(function(d) {
+            d.year = +d.year;
+            d.spplus = +d.spplus;
+            d.percent = +d.percent;
+            d.rollingAvg = +d.rollingAvg;
+        });
 
-  // don't want dots overlapping axis, so add in buffer to data domain
-  xScale.domain([d3.min(data, xValue)-1, d3.max(data, xValue)+1]);
-  yScale.domain([d3.min(data, yValue)-1, d3.max(data, yValue)+1]);
+        // don't want dots overlapping axis, so add in buffer to data domain
+        xScale.domain([d3.min(data, xValue)-1, d3.max(data, xValue)+1]);
+        yScale.domain([d3.min(data, yValue)-1, d3.max(data, yValue)+1]);
 
-  // x-axis
-  svg.append("g")
-      .attr("class", "x axis")
-      .attr("transform", "translate(0," + height + ")")
-      .call(xAxis)
-    .append("text")
-      .attr("class", "label")
-      .attr("x", width)
-      .attr("y", -6)
-      .style("text-anchor", "end")
-      .text("4-year rolling average % of in-state" + (bluechipFilter ? " bluechip" : "") + " prospects in " + selectedTeam + " recruiting classes");
+        // x-axis
+        svg.append("g")
+        .attr("class", "x axis")
+        .attr("transform", "translate(0," + height + ")")
+        .call(xAxis)
+        .append("text")
+        .attr("class", "label")
+        .attr("x", width)
+        .attr("y", -6)
+        .style("text-anchor", "end")
+        .text("4-year rolling average % of in-state" + (bluechipFilter ? " bluechip" : "") + " prospects in " + selectedTeam + " recruiting classes");
 
-  // y-axis
-  svg.append("g")
-      .attr("class", "y axis")
-      .call(yAxis)
-    .append("text")
-      .attr("class", "label")
-      .attr("transform", "rotate(-90)")
-      .attr("y", 6)
-      .attr("dy", ".71em")
-      .style("text-anchor", "end")
-      .text("Overall S&P+ Rating");
+        // y-axis
+        svg.append("g")
+        .attr("class", "y axis")
+        .call(yAxis)
+        .append("text")
+        .attr("class", "label")
+        .attr("transform", "rotate(-90)")
+        .attr("y", 6)
+        .attr("dy", ".71em")
+        .style("text-anchor", "end")
+        .text("Overall S&P+ Rating");
 
-  // draw dots
-  svg.selectAll(".dot")
-      .data(data)
-    .enter().append("circle")
-      .attr("class", "dot")
-      .attr("r", 3.5)
-      .attr("cx", xMap)
-      .attr("cy", yMap)
-      .style("fill", function(d) {
-        return teamHexColor;
-      })
-      .on("mouseover", function(d) {
-          tooltip.transition()
-               .duration(200)
-               .style("opacity", .9);
-          tooltip.html(d.year + " (" + xValue(d).toFixed(2)
-	        + "%, " + yValue(d) + ")")
-               .style("left", (d3.event.pageX + 5) + "px")
-               .style("top", (d3.event.pageY - 15) + "px");
-      })
-      .on("mouseout", function(d) {
-          tooltip.transition()
-               .duration(500)
-               .style("opacity", 0);
-      });
+        // draw dots
+        svg.selectAll(".dot")
+        .data(data)
+        .enter().append("circle")
+        .attr("class", "dot")
+        .attr("r", 3.5)
+        .attr("cx", xMap)
+        .attr("cy", yMap)
+        .style("fill", function(d) {
+            return dataset.color;
+        })
+        .on("mouseover", function(d) {
+            tooltip.transition()
+            .duration(200)
+            .style("opacity", .9);
+            tooltip.html(d.year + " (" + xValue(d).toFixed(2)
+            + "%, " + yValue(d) + ")")
+            .style("left", (d3.event.pageX + 5) + "px")
+            .style("top", (d3.event.pageY - 15) + "px");
+        })
+        .on("mouseout", function(d) {
+            tooltip.transition()
+            .duration(500)
+            .style("opacity", 0);
+        });
 
-      // Good chance that none of this is accurate, so commenting out for now
-      // var yval = data.map(function (d) { return d.percent; });
-      // var xval = data.map(function (d) { return d.spplus; });
-      // var lr = linearRegression(yval,xval);
-      // console.log("R^2 for " + selectedTeam + " " + (bluechipFilter ? "bluechip " : "") +  "regression: " + lr.r2 + "\n" +
-      // // (100*lr.r2).toFixed(2) + "% of the data is explained by the regression model." + "\n" +
-      // "R for " + selectedTeam + " " + (bluechipFilter ? "bluechip " : "") +  "regression: " + Math.pow(lr.r2, 0.5) + "\n");
-      //
-      // var max = d3.max(data, function (d) { return d.percent; });
-      // svg.append("svg:line")
-      //             .attr("x1", xScale(0))
-      //             .attr("y1", yScale(lr.intercept))
-      //             .attr("x2", xScale(max))
-      //             .attr("y2", yScale((max * lr.slope) + lr.intercept ))
-      //             .style("stroke", "black");
-      //
-      // svg.append("text")
-      //   .attr("x", (width / 2))
-      //   .attr("y", height + margin.bottom)
-      //   .attr("text-anchor", "middle")
-      //   .style("font-size", "12px")
-      //   // .style("text-decoration", "underline")
-      //   .text("R^2 for " + selectedTeam + " " + (bluechipFilter ? "bluechip " : "") +  "regression: " + lr.r2 + ";" +
-      //   // (100*lr.r2).toFixed(2) + "% of the data is explained by the regression model." + "\n" +
-      //   "R for " + selectedTeam + " " + (bluechipFilter ? "bluechip " : "") +  "regression: " + Math.pow(lr.r2, 0.5) + "\n");
-});
+        // see below for an explanation of the calcLinear function
+        var lg = calcLinear(data, "x", "y", d3.min(data, xValue), d3.min(data, yValue));
+
+        svg.append("line")
+        .style("stroke-dasharray", ("10, 5"))
+        .style("stroke", dataset.color)
+        .style("stroke-width", "2px")
+        .attr("x1", xMap(lg.ptA))
+        .attr("y1", yMap(lg.ptA))
+        .attr("x2", xMap(lg.ptB))
+        .attr("y2", yMap(lg.ptB));
+    });
+
+    // Calculate a linear regression from the data
+    // Source: https://bl.ocks.org/HarryStevens/be559bed98d662f69e68fc8a7e0ad097
+    // Takes 5 parameters:
+    // (1) Your data
+    // (2) The column of data plotted on your x-axis
+    // (3) The column of data plotted on your y-axis
+    // (4) The minimum value of your x-axis
+    // (5) The minimum value of your y-axis
+
+    // Returns an object with two points, where each point is an object with an x and y coordinate
+    function calcLinear(data, x, y, minX, minY) {
+        /////////
+        //SLOPE//
+        /////////
+
+        // Let n = the number of data points
+        var n = data.length;
+
+        // Get just the points
+        var pts = [];
+        data.forEach(function(d,i){
+            var obj = {};
+            obj.x = d.rollingAvg;
+            obj.y = d.spplus;
+            obj.mult = obj.x*obj.y;
+            pts.push(obj);
+        });
+
+        // Let a equal n times the summation of all x-values multiplied by their corresponding y-values
+        // Let b equal the sum of all x-values times the sum of all y-values
+        // Let c equal n times the sum of all squared x-values
+        // Let d equal the squared sum of all x-values
+        var sum = 0;
+        var xSum = 0;
+        var ySum = 0;
+        var sumSq = 0;
+        pts.forEach(function(pt){
+            sum = sum + pt.mult;
+            xSum = xSum + pt.x;
+            ySum = ySum + pt.y;
+            sumSq = sumSq + (pt.x * pt.x);
+        });
+        var a = sum * n;
+        var b = xSum * ySum;
+        var c = sumSq * n;
+        var d = xSum * xSum;
+
+        // Plug the values that you calculated for a, b, c, and d into the following equation to calculate the slope
+        // slope = m = (a - b) / (c - d)
+        var m = (a - b) / (c - d);
+
+        /////////////
+        //INTERCEPT//
+        /////////////
+
+        // Let e equal the sum of all y-values
+        var e = ySum;
+
+        // Let f equal the slope times the sum of all x-values
+        var f = m * xSum;
+
+        // Plug the values you have calculated for e and f into the following equation for the y-intercept
+        // y-intercept = b = (e - f) / n
+        var b = (e - f) / n;
+
+        // // Print the equation below the chart
+        // document.getElementsByClassName("equation")[0].innerHTML = "y = " + m + "x + " + b;
+        // document.getElementsByClassName("equation")[1].innerHTML = "x = ( y - " + b + " ) / " + m;
+
+        // return an object of two points
+        // each point is an object with an x and y coordinate
+        var result = {
+            ptA : {
+                rollingAvg: minX,
+                spplus: m * minX + b
+            },
+            ptB : {
+                spplus: minY,
+                rollingAvg: (minY - b) / m
+            }
+        }
+        // console.log(result);
+        return result;
+    }
 
 </script>
 </body>
