@@ -148,7 +148,7 @@ function pullTeamData(team, year, blueChipFilter, callback) {
 }
 
 var dataset = [];
-var selectedTeam = "Clemson";
+var selectedTeam = "Michigan";
 var filterForBluechips = false;
 // S&P+ only has data between 2005 and 2018, account for that.
 var endYear = 2018;
