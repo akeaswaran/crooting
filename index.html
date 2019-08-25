@@ -36,12 +36,17 @@ body {
     <script src="/js/d3.min.js"></script>
     <script src="/js/d3-regression.min.js"></script>
     <script>
+    // Configuration Variables
+    // ---
     // list out the teams you want to analyze (Miami can be Miami-FL or Miami-OH, but not just "Miami")
     var selectedTeams = ["Florida","Miami-FL","Florida State"];
     // don't turn this var to true unless you've retrieved the files with bluechips
     var bluechipFilter = false;
     // turn to true to draw regression lines
     var shouldDrawRegressionLines = true;
+    // turn to true to draw regression lines
+    var shouldDrawLegend = true;
+    // ---
 
     function generateFileName(team, bluechip) {
         return "./results/" + team.toLocaleLowerCase().replace(" ","-") + (bluechip ? "-bluechip" : "") + ".json";
@@ -160,6 +165,41 @@ body {
                 .attr("y1", d => yScale(d[0][1]))
                 .attr("y2", d => yScale(d[1][1]));
             });
+        }
+
+        // compile legend data
+        var legendData = [];
+        teams.forEach(function(t) {
+            var retrievedColor = data.filter(function(d) {
+                return d.team == t;
+            })[0].teamColor;
+            legendData.push({team:t,color:retrievedColor});
+        })
+
+        if (shouldDrawLegend) {
+            // draw legend
+             var legend = svg.selectAll(".legend")
+                 .data(legendData)
+               .enter().append("g")
+                 .attr("class", "legend")
+                 .attr("transform", function(d, i) { return "translate(0," + i * 20 + ")"; });
+
+             // draw legend colored rectangles
+             legend.append("rect")
+                 .attr("x", width - 18)
+                 .attr("width", 18)
+                 .attr("height", 18)
+                 .style("fill", function(d) {
+                     return d.color;
+                 });
+
+             // draw legend text
+             legend.append("text")
+                 .attr("x", width - 24)
+                 .attr("y", 9)
+                 .attr("dy", ".35em")
+                 .style("text-anchor", "end")
+                 .text(function(d) { return d.team;})
         }
     }
 
