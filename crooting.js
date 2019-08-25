@@ -123,7 +123,14 @@ function pullTeamData(team, year, blueChipFilter, callback) {
         return;
     }
 
-    makeJSONRequest('https://api.collegefootballdata.com/recruiting/players?year=' + encodeURIComponent(year.toString()) + '&classification=HighSchool&team=' + encodeURIComponent(team),
+    var urlTeam = team;
+    if (team == "Miami-FL") {
+        urlTeam = "Miami"
+    } else if (team == "Miami-OH") {
+        urlTeam = "Miami (OH)"
+    }
+
+    makeJSONRequest('https://api.collegefootballdata.com/recruiting/players?year=' + encodeURIComponent(year.toString()) + '&classification=HighSchool&team=' + encodeURIComponent(urlTeam),
     function(err, data) {
         var percent = 0;
         if (err) {
@@ -148,7 +155,8 @@ function pullTeamData(team, year, blueChipFilter, callback) {
 }
 
 var dataset = [];
-var selectedTeam = "Michigan";
+// Note: Miami can be Miami-FL or Miami-OH, but not just "Miami"
+var selectedTeam = "Miami-FL";
 var filterForBluechips = false;
 // S&P+ only has data between 2005 and 2018, account for that.
 var endYear = 2018;
