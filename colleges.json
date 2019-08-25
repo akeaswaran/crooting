@@ -4,7 +4,7 @@
             {"tid": 105, "cid": 0, "did": 0, "region": "Clemson", "name": "Tigers", "abbrev": "CLEM", "pop": 215, "city": "Clemson", "state": "SC", "latitude": 34.678, "longitude": -82.839},
             {"tid": 109, "cid": 0, "did": 0, "region": "Florida State", "name": "Seminoles", "abbrev": "FSU", "pop": 211, "city": "Tallahassee", "state": "FL", "latitude": 30.442, "longitude": -84.298},
             {"tid": 18, "cid": 0, "did": 0, "region": "Louisville", "name": "Cardinals", "abbrev": "UL", "pop": 302, "city": "Louisville", "state": "KY", "latitude": 38.25, "longitude": -85.766},
-            {"tid": 31, "cid": 0, "did": 0, "region": "North Carolina State", "name": "Wolfpack", "abbrev": "NCST", "pop": 289, "city": "Raleigh", "state": "NC", "latitude": 35.786 , "longitude": -78.682},
+            {"tid": 31, "cid": 0, "did": 0, "region": "NC State", "name": "Wolfpack", "abbrev": "NCST", "pop": 289, "city": "Raleigh", "state": "NC", "latitude": 35.786 , "longitude": -78.682},
             {"tid": 9, "cid": 0, "did": 0, "region": "Notre Dame", "name": "Fighting Irish", "abbrev": "ND", "pop": 311, "city": "South Bend", "state": "IN", "latitude": 41.672, "longitude": -86.255},
             {"tid": 66, "cid": 0, "did": 0, "region": "Syracuse", "name": "Orange", "abbrev": "CUSE", "pop": 254, "city": "Syracuse", "state": "NY", "latitude": 43.046 , "longitude": -76.144},
             {"tid": 141, "cid": 0, "did": 0, "region": "Wake Forest", "name": "Demon Deacons", "abbrev": "WAKE", "pop": 179, "city": "Winston-Salem", "state": "NC", "latitude": 36.102, "longitude": -80.260},

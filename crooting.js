@@ -156,7 +156,7 @@ function pullTeamData(team, year, blueChipFilter, callback) {
 
 var dataset = [];
 // Note: Miami can be Miami-FL or Miami-OH, but not just "Miami"
-var selectedTeam = "Miami-FL";
+var selectedTeam = "Pittsburgh";
 var filterForBluechips = false;
 // S&P+ only has data between 2005 and 2018, account for that.
 var endYear = 2018;
