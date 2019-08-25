@@ -25,12 +25,6 @@ body {
     stroke: #000;
 }
 
-/* .regression {
-    stroke-width: 2px;
-    stroke: steelblue;
-    stroke-dasharray: 10,5;
-} */
-
 .tooltip {
     position: absolute;
     width: 200px;
@@ -43,9 +37,8 @@ body {
     <script src="/js/d3-regression.min.js"></script>
     <script>
     // set up analysis variables
-    var selectedTeam = "Clemson";
+    var selectedTeams = ["Clemson","Georgia Tech","Georgia","Ohio State","Michigan"];
     var bluechipFilter = false;
-    // var teamHexColor = "#9e1b32";
 
     function generateFileName(team, bluechip) {
         return "./results/" + team.toLocaleLowerCase().replace(" ","-") + (bluechip ? "-bluechip" : "") + ".json";
@@ -57,15 +50,15 @@ body {
 
     // setup x
     var xValue = function(d) { return d.rollingAvg;}, // data -> value
-    xScale = d3.scale.linear().range([0, width]), // value -> display
+    xScale = d3.scaleLinear().range([0, width]), // value -> display
     xMap = function(d) { return xScale(xValue(d));}, // data -> display
-    xAxis = d3.svg.axis().scale(xScale).orient("bottom");
+    xAxis = d3.axisBottom(xScale);
 
     // setup y
     var yValue = function(d) { return d.spplus;}, // data -> value
-    yScale = d3.scale.linear().range([height, 0]), // value -> display
+    yScale = d3.scaleLinear().range([height, 0]), // value -> display
     yMap = function(d) { return yScale(yValue(d));}, // data -> display
-    yAxis = d3.svg.axis().scale(yScale).orient("left");
+    yAxis = d3.axisLeft(yScale);
 
     // add the graph canvas to the body of the webpage
     var svg = d3.select("body").append("svg")
@@ -79,11 +72,8 @@ body {
     .attr("class", "tooltip")
     .style("opacity", 0);
 
-    // load data
-    d3.json(generateFileName(selectedTeam, bluechipFilter), function(error, dataset) {
-
-        var data = dataset.data;
-        // change string (from CSV) into number format
+    // build the chart -- defined as a function so that it can be built async after we build the dataset
+    function buildChart(data, teams) {
         data.forEach(function(d) {
             d.year = +d.year;
             d.spplus = +d.spplus;
@@ -99,19 +89,21 @@ body {
         svg.append("g")
         .attr("class", "x axis")
         .attr("transform", "translate(0," + height + ")")
-        .call(xAxis)
-        .append("text")
+        .call(xAxis);
+
+        svg.append("text")
         .attr("class", "label")
         .attr("x", width)
-        .attr("y", -6)
+        .attr("y", height - 6)
         .style("text-anchor", "end")
-        .text("4-year rolling average % of in-state" + (bluechipFilter ? " bluechip" : "") + " prospects in " + selectedTeam + " recruiting classes");
+        .text("4-year rolling average % of in-state" + (bluechipFilter ? " bluechip" : "") + " prospects in recruiting classes");
 
         // y-axis
         svg.append("g")
         .attr("class", "y axis")
-        .call(yAxis)
-        .append("text")
+        .call(yAxis);
+
+        svg.append("text")
         .attr("class", "label")
         .attr("transform", "rotate(-90)")
         .attr("y", 6)
@@ -128,13 +120,13 @@ body {
         .attr("cx", xMap)
         .attr("cy", yMap)
         .style("fill", function(d) {
-            return dataset.color;
+            return d.teamColor;
         })
         .on("mouseover", function(d) {
             tooltip.transition()
             .duration(200)
             .style("opacity", .9);
-            tooltip.html(d.year + " (" + xValue(d).toFixed(2)
+            tooltip.html(d.team + ", " + d.year + " (" + xValue(d).toFixed(2)
             + "%, " + yValue(d) + ")")
             .style("left", (d3.event.pageX + 5) + "px")
             .style("top", (d3.event.pageY - 15) + "px");
@@ -148,15 +140,47 @@ body {
         const regression = d3.regressionLinear()
           .x(d => d.rollingAvg)
           .y(d => d.spplus);
-          svg.append("line")
+        teams.forEach(function(t) {
+            var retrievedColor = data.filter(function(d) {
+                return d.team == t;
+            })[0].teamColor;
+            svg.append("line")
               .style("stroke-dasharray", ("10, 5"))
-              .style("stroke", dataset.color)
+              .style("stroke", retrievedColor)
               .style("stroke-width", "2px")
-            .datum(regression(data))
+            .datum(regression(data.filter(function(item) {
+                return item.team == t;
+            })))
             .attr("x1", d => xScale(d[0][0]))
             .attr("x2", d => xScale(d[1][0]))
             .attr("y1", d => yScale(d[0][1]))
             .attr("y2", d => yScale(d[1][1]));
+        });
+    }
+
+    // load the data files
+    var selections = [];
+    selectedTeams.forEach(function(item) {
+        selections.push(d3.json(generateFileName(item, bluechipFilter)));
+    });
+
+    // compile the dataset
+    Promise
+    .all(selections)
+    .then(function(listedData) {
+        var combinedData = [];
+        // have to add the team color and team name to make sure each point shows up correctly
+        listedData.forEach(function(teamData) {
+            teamData.data.forEach(function(item) {
+                item.teamColor = teamData.color;
+                item.team = teamData.team;
+                combinedData.push(item);
+            })
+        })
+        // actually build the chart
+        buildChart(combinedData, selectedTeams);
+    }).catch(function(err) {
+        console.log(err);
     });
 
 </script>
