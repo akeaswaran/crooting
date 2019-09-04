@@ -51,7 +51,7 @@ function makeJSONRequest(url, callback) {
         });
 
     }).on("error", (err) => {
-        console.log("Error: " + err.message);
+        console.log("[Crooting] Error: " + err.message);
         callback(`Error: ${err}`, []);
     });
 };
@@ -108,14 +108,14 @@ function generateFileName(team, bluechip) {
 function pullTeamData(team, year, blueChipFilter, callback) {
     var school = findSchool(team);
     if (school == null) {
-        console.log("No school found locally.")
+        console.log("[Crooting] No school found locally.")
         return;
     }
     // https://flaviocopes.com/how-to-check-if-file-exists-node/
     var fileName = generateFileName(team, blueChipFilter);
     try {
       if (fs.existsSync(fileName)) {
-          console.log("Team data already calculated -- see " + fileName + ".")
+          console.log("[Crooting] Team data already calculated -- see " + fileName + ".")
         return;
       }
     } catch(err) {
@@ -134,7 +134,7 @@ function pullTeamData(team, year, blueChipFilter, callback) {
     function(err, data) {
         var percent = 0;
         if (err) {
-            console.log('Error: ' + err);
+            console.log('[Crooting] Error: ' + err);
         } else {
             if (data.length > 0) {
                 var instate = data.filter(function(item) {
@@ -145,7 +145,7 @@ function pullTeamData(team, year, blueChipFilter, callback) {
                     return check;
                 });
                 percent = (instate.length / data.length) * 100;
-                console.log("% of in-state" + ((blueChipFilter) ? " bluechip" : "") + " prospects in " + year + " " + team + " class: " + percent.toFixed(2) + "% (" + instate.length + " of " + data.length + ")");
+                console.log("[Crooting] % of in-state" + ((blueChipFilter) ? " bluechip" : "") + " prospects in " + year + " " + team + " class: " + percent.toFixed(2) + "% (" + instate.length + " of " + data.length + ")");
             }
         }
         if (callback) {
@@ -154,46 +154,66 @@ function pullTeamData(team, year, blueChipFilter, callback) {
     });
 }
 
-var dataset = [];
-// Note: Miami can be Miami-FL or Miami-OH, but not just "Miami"
-var selectedTeam = "Pittsburgh";
-var filterForBluechips = false;
+
+function generateComparisonData(selectedTeam, filterForBluechips, startYear, endYear) {
+  var dataset = [];
+  var fileName = generateFileName(selectedTeam, filterForBluechips);
+  async.timesSeries((endYear - startYear) + 1, function(n, next) {
+      pullTeamData(selectedTeam, startYear + n, filterForBluechips, function(percent, yr) {
+          next(null, { "year": yr, "percent" : percent, "spplus" : findSPPlus(selectedTeam, yr) });
+      });
+  }, function(err, results) {
+      var block = [];
+      results.forEach(function(item) {
+          block.push(item.percent);
+      });
+
+      var avgs = moving_average(2, 2, block);
+      var cleanDisplay = [];
+      results.forEach(function(item, i) {
+          cleanDisplay.push({ "year": item.year, "percent" : item.percent, "spplus" : item.spplus, "rollingAvg" : avgs[i] != null ? avgs[i] : 0 });
+      });
+
+      // console.log("ROLLING AVG: ");
+      // console.log(cleanDisplay);
+      // https://stackoverflow.com/questions/2496710/writing-files-in-node-js
+      fs.mkdir('results', { recursive : true }, function(error) {
+          if (error && !error.toString().includes('EEXIST')) {
+              console.log("[Crooting] Something went wrong while saving - " + error);
+          } else {
+              fs.writeFile(fileName, JSON.stringify({"data" : cleanDisplay, "team" : selectedTeam.trim(), "color" : findHexColor(selectedTeam.trim())}), function(err) {
+                  if(err) {
+                      return console.log(err);
+                  }
+
+                  console.log("[Crooting] Saved team data to " + fileName + ".");
+              });
+          }
+      });
+  });
+}
+
+var argv = require('minimist')(process.argv.slice(2));
+// supported args: node crooting.js --team="<team>" --bluechipsOnly=<bool> --startYear=<int> --endYear=<int>
+
+
+var team = argv.team; // Note: Miami can be Miami-FL or Miami-OH, but not just "Miami"
+var bluechipsFiltered = (argv.hasOwnProperty('bluechipsOnly') && argv.bluechipsOnly != null) ? argv.bluechipsOnly : false;
+
 // S&P+ only has data between 2005 and 2018, account for that.
-var endYear = 2018;
-var startYear = 2005;
-var fileName = generateFileName(selectedTeam, filterForBluechips);
+var sYear = (argv.hasOwnProperty('startYear') && argv.startYear != null) ? parseInt(argv.startYear) : 2005;
+var eYear = (argv.hasOwnProperty('endYear') && argv.endYear != null) ? parseInt(argv.endYear) : 2018;
 
-async.timesSeries((endYear - startYear) + 1, function(n, next) {
-    pullTeamData(selectedTeam, startYear + n, filterForBluechips, function(percent, yr) {
-        next(null, { "year": yr, "percent" : percent, "spplus" : findSPPlus(selectedTeam, yr) });
-    });
-}, function(err, results) {
-    var block = [];
-    results.forEach(function(item) {
-        block.push(item.percent);
-    });
-
-    var avgs = moving_average(2, 2, block);
-    var cleanDisplay = [];
-    results.forEach(function(item, i) {
-        cleanDisplay.push({ "year": item.year, "percent" : item.percent, "spplus" : item.spplus, "rollingAvg" : avgs[i] != null ? avgs[i] : 0 });
-    });
-
-    // console.log("ROLLING AVG: ");
-    // console.log(cleanDisplay);
-    // https://stackoverflow.com/questions/2496710/writing-files-in-node-js
-    fs.mkdir('results', { recursive : true }, function(error) {
-        if (error && !error.toString().includes('EEXIST')) {
-            console.log("Something went wrong while saving - " + error);
-        } else {
-            fs.writeFile(fileName, JSON.stringify({"data" : cleanDisplay, "team" : selectedTeam.trim(), "color" : findHexColor(selectedTeam.trim())}), function(err) {
-                if(err) {
-                    return console.log(err);
-                }
-
-                console.log("Saved team data to " + fileName + ".");
-            });
-        }
-    })
-
-});
+if (team == null) {
+  console.log("[Crooting] Team not provided. Please use the --team parameter.");
+} else if (sYear < 2005 || sYear > 2018) {
+  console.log("[Crooting] Please provide a start year between 2005 and 2018.");
+} else if (eYear < 2005 || eYear > 2018) {
+  console.log("[Crooting] Please provide an end year between 2005 and 2018.");
+} else if (eYear < sYear) {
+  console.log("[Crooting] Please provide an end year for the dataset that is greater than or equal to its start year.");
+} else {
+  // console.log("[Crooting] Args: ", argv);
+  console.log("[Crooting] Generating data for " + team + " between given years " + sYear + " and " + eYear + (bluechipsFiltered ? " and filtering for bluechips" : "") + "...");
+  generateComparisonData(team, bluechipsFiltered, sYear, eYear);
+}
